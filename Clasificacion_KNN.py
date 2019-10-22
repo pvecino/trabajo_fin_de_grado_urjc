@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -35,6 +35,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
+get_ipython().run_line_magic('autosave', '60')
 
 
 # ## Funciones a utilizar
@@ -43,18 +44,18 @@ warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
 
 def opened (path=''):
-
+    
     X_training=[]
     X_testing=[]
     y_training=[]
     y_testing=[]
-
+           
     for j in range(0, 50):
         X_training.append(pd.read_csv('test_train_dataset{}{}_X_train.csv'.format(path,j)))
         X_testing.append(pd.read_csv('test_train_dataset{}{}_X_test.csv'.format(path, j)))
         y_training.append(pd.read_csv('test_train_dataset{}{}_y_train.csv'.format(path, j)))
         y_testing.append(pd.read_csv('test_train_dataset{}{}_y_test.csv'.format(path, j)))
-
+        
     return X_training, X_testing, y_training, y_testing
 
 
@@ -63,12 +64,12 @@ def opened (path=''):
 
 def frequency (valor):
     max = 0
-    res = list(valor)[0]
-    for i in list(valor):
-        freq = list(valor).count(i)
-        if freq > max:
-            max = freq
-            res = i
+    res = list(valor)[0] 
+    for i in list(valor): 
+        freq = list(valor).count(i) 
+        if freq > max: 
+            max = freq 
+            res = i 
     valor = res
     return valor
 
@@ -83,16 +84,16 @@ def maximun (df, name):
 
 
 # #  Aplicación del algoritmo KNN Clasificador.
-#
+# 
 
 # In[ ]:
 
 
 def hyper_KNN(path, features, name, multiclass=False):
-
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     max_neighbors = 50
     turn_neighbors = [i for i in range(1,max_neighbors)]
 
@@ -118,9 +119,9 @@ def hyper_KNN(path, features, name, multiclass=False):
         ss.fit(x_train[j][features])
         ss_train=ss.transform(x_train[j][features])
 
-    #Bus* camos el mejor K para esa división normalizada
-        clf = GridSearchCV(KNeighborsClassifier(n_jobs=-1),param_grid,
-                              scoring='accuracy', cv=KFold(n_splits=5),
+    #Bus* camos el mejor K para esa división normalizada    
+        clf = GridSearchCV(KNeighborsClassifier(n_jobs=-1),param_grid, 
+                              scoring='accuracy', cv=KFold(n_splits=5), 
                               n_jobs=-1)
         if multiclass==True:
             y_training = y_train[j].values.ravel()
@@ -138,12 +139,12 @@ def hyper_KNN(path, features, name, multiclass=False):
         average.append(clf.cv_results_['mean_test_score'])
 
         KNN_evaluate.append([best_k[j], round(KNN_acc_model[j],3), round(KNN_std[j],3)])#W
-
-
+    
+        
     to_plot= pd.DataFrame(data= average, columns=turn_neighbors)
-
+    
     to_plot.to_csv('results/KNN/KNN_to_plot_{}.csv'.format(name), index=False)
-
+        
     labels_comp = ['k','accuracy_model', 'std']
 
     comparacion=pd.DataFrame(data=KNN_evaluate, columns = labels_comp)
@@ -154,17 +155,17 @@ def hyper_KNN(path, features, name, multiclass=False):
 # In[ ]:
 
 
-def predict_KNN(path, features, name, multiclass=False):
-
+def predict_KNN(path, features, name, multiclass=False): 
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     comparacion = pd.read_csv('results/KNN/KNN_hyper_{}.csv'.format(name))
     Neigh = maximun(comparacion, 'k')
     print('Neigh: ', Neigh)
-
+    
     print('Con los parámetros óptimos procedemos a clasificar.')
-
+    
     accuracy=[]
     hamming_losse=[]
     precision_macro=[]
@@ -173,12 +174,12 @@ def predict_KNN(path, features, name, multiclass=False):
     recall_micro=[]
     f1_scores_macro=[]
     f1_scores_micro=[]
-
+    
     average_accuracy=[]
     average_precision=[]
     average_recall=[]
     f1_scores=[]
-
+    
     for i in range(0,50):
         ss=StandardScaler()
         ss.fit(x_train[i][features])
@@ -222,7 +223,7 @@ def predict_KNN(path, features, name, multiclass=False):
             average_recall.append(np.mean(TP / (TP + FN)))
             f1_scores.append(np.mean(2*(precision*recall)/(precision+recall)))
             average_accuracy.append(accuracy_score(y_true, y_pred))
-
+        
     predict=pd.DataFrame()
     if multiclass==False:
         predict['accuracy']=accuracy
@@ -238,7 +239,7 @@ def predict_KNN(path, features, name, multiclass=False):
         predict['precision']=average_precision
         predict['recall']=average_recall
         predict['f1']=f1_scores
-
+        
     predict.to_csv('results/KNN/KNN_predict_{}.csv'.format(name), index=False)
 
 
@@ -265,7 +266,7 @@ import os.path as path
 # In[ ]:
 
 
-names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill']
+names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill'] 
 features_freq = []
 for n in names:
     with open("feature_selection/freq_{}.txt".format(n), "r") as file:
@@ -283,7 +284,7 @@ names_CLASS_fr=['freq_all_class_O', 'freq_ill_class_O', 'freq_all_class_P', 'fre
 
 
 for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n, True)
@@ -291,7 +292,7 @@ for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
         print('--------------------------------------------------------')
         print()
 
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n, True)
@@ -311,7 +312,7 @@ names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'fre
 
 
 for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n)
@@ -319,7 +320,7 @@ for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
         print('--------------------------------------------------------')
         print()
 
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n)
@@ -351,15 +352,15 @@ names_label_rf=['rf_all_label_O','rf_ill_label_O', 'rf_all_label_P', 'rf_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_rf, features_rf_label):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n)
@@ -389,15 +390,15 @@ name_class_rf=['rf_all_class_O','rf_ill_class_O', 'rf_all_class_P', 'rf_ill_clas
 
 
 for p, n, f in zip(path_class, name_class_rf, features_rf_class):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n, multiclass=True)
@@ -429,15 +430,15 @@ names_label_fc=['fc_all_label_O','fc_ill_label_O', 'fc_all_label_P', 'fc_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_fc, features_fc_label):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n)
@@ -452,7 +453,7 @@ for p, n, f in zip(path_label, names_label_fc, features_fc_label):
 names=['class_o_all','class_o_ill', 'class_p_all', 'class_p_ill']
 features_fc_class = []
 for n in names:
-    with open("feature_selection/rf_{}.txt".format(n), "r") as file:
+    with open("feature_selection/fc_{}.txt".format(n), "r") as file:
         features_fc_class.append(eval(file.readline()))
 
 
@@ -467,15 +468,15 @@ name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_clas
 
 
 for p, n, f in zip(path_class, name_class_fc, features_fc_class):
-    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)):
+    if path.exists('results/KNN/KNN_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_KNN(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/KNN/KNN_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_KNN(p, f, n, multiclass=True)
@@ -486,71 +487,100 @@ for p, n, f in zip(path_class, name_class_fc, features_fc_class):
 
 # --------------------------------------
 
-# # ## Resultados
+# ## Resultados
 
-# # In[ ]:
-
-
-# labels_names = names_LABEL_fr + names_label_fc + names_label_rf
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_etiqueta(names):
+    hyper_label=[]
+    predict_label=[]
+    for name in names:
+        hyper_label.append(pd.read_csv('results/KNN/KNN_hyper_{}.csv'.format(name)))
+        predict_label.append(pd.read_csv('results/KNN/KNN_predict_{}.csv'.format(name)))
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Neigh = maximun(hyper_label[i], 'k')
+        print('Neigh: ', Neigh)
+
+        print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
+        print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
+        print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
+        print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
+        print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
+        print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
+        print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
+        print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
+        print('---------------------------------------------------------------')
 
 
-# hyper_label=[]
-# predict_label=[]
-# for name in labels_names:
-#     hyper_label.append(pd.read_csv('results/KNN/KNN_hyper_{}.csv'.format(name)))
-#     predict_label.append(pd.read_csv('results/KNN/KNN_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_LABEL_fr)
 
 
-# for i, n in zip(range(0, len(labels_names)), labels_names):
-#     print(n)
-#     print()
-#     Neigh = maximun(hyper_label[i], 'k')
-#     print('Neigh: ', Neigh)
-
-#     print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
-#     #print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
-#     print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
-#     print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
-#     print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
-#     print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
-#     print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
-#     print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
-#     print('---------------------------------------------------------------')
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_fc)
 
 
-# classs_names = names_CLASS_fr + names_class_fc + names_class_rf
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_rf)
 
 
-# hyper_class=[]
-# predict_class=[]
-# for name in classs_names:
-#     hyper_class.append(pd.read_csv('results/KNN/KNN_hyper_{}.csv'.format(name)))
-#     predict_class.append(pd.read_csv('results/KNN/KNN_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_clases(names):
+    hyper_class=[]
+    predict_class=[]
+    for name in names:
+        hyper_class.append(pd.read_csv('results/KNN/KNN_hyper_{}.csv'.format(name)))
+        predict_class.append(pd.read_csv('results/KNN/KNN_predict_{}.csv'.format(name)))
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Neigh = maximun(hyper_class[i], 'k')
+        print('Neigh: ', Neigh)
+
+        print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
+        print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
+        print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
+        print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
+        print('---------------------------------------------------------------')
 
 
-# for i, n in zip(range(0, len(classs_names)), classs_names):
-#     print(n)
-#     print()
-#     Neigh = maximun(hyper_class[i], 'k')
-#     print('Neigh: ', Neigh)
+# In[ ]:
 
-#     print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
-#     print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
-#     print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
-#     print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
-#     print('---------------------------------------------------------------')
+
+resultados_clases(names_CLASS_fr)
+
+
+# In[ ]:
+
+
+resultados_clases(name_class_fc)
+
+
+# In[ ]:
+
+
+resultados_clases(name_class_rf)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+

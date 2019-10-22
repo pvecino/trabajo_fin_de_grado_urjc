@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -33,6 +33,11 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 warnings.simplefilter(action='ignore', category=DataConversionWarning)
+
+from IPython.display import clear_output
+
+
+get_ipython().run_line_magic('autosave', '60')
 
 
 # ## Funciones a utilizar
@@ -302,7 +307,7 @@ for p, n, f in zip(path_class, name_class_rf, features_rf_class):
         print()
 
 
- # ### Selección de caracteristicas: F Fisher
+# ### Selección de caracteristicas: F Fisher
 
 # In[ ]:
 
@@ -314,14 +319,14 @@ for n in names:
         features_fc_class.append(eval(file.readline()))
 
 
- # In[ ]:
+# In[ ]:
 
 
 path_class= ['/class/O_WC_A_', '/class/O_WC_WO_', '/class/P_WC_A_', '/class/P_WC_WO_']
 name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_class_P']
 
 
- # In[ ]:
+# In[ ]:
 
 
 for p, n, f in zip(path_class, name_class_fc, features_fc_class):
@@ -342,38 +347,53 @@ for p, n, f in zip(path_class, name_class_fc, features_fc_class):
         print()
 
 
-# # ## Resultados
+# ## Resultados
 
-# # In[ ]:
-
-
-# classs_names = names_CLASS_fr + names_class_fc + names_class_rf
+# In[ ]:
 
 
-# # In[ ]:
+def resultados(names):
+    hyper=[]
+    predict_class=[]
+    for name in names:
+        hyper.append(pd.read_csv('results/RLM/RLM_hyper_{}.csv'.format(name)))
+        predict_class.append(pd.read_csv('results/RLM/RLM_predict_{}.csv'.format(name)))
+        
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        C = maximun(hyper[i], 'c')
+        print('C: ', C)
+        Solver = maximun(hyper[i], 'solver')
+        print('Solver: ', Solver)
+
+        print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
+        print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
+        print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
+        print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
+        print('---------------------------------------------------------------')
 
 
-# hyper=[]
-# predict_class=[]
-# for name in classs_names:
-#     hyper.append(pd.read_csv('results/RLM/RLM_hyper_{}.csv'.format(name)))
-#     predict_class.append(pd.read_csv('results/RLM/RLM_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+resultados(names_CLASS_fr)
 
 
-# for i, n in zip(range(0, len(classs_names)), classs_names):
-#     print(n)
-#     print()
-#     C = maximun(hyper[i], 'c')
-#     print('C: ', C)
-#     Solver = maximun(hyper[i], 'solver')
-#     print('Solver: ', Solver)
-    
-#     print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
-#     print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
-#     print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
-#     print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
-#     print('---------------------------------------------------------------')
+# In[ ]:
+
+
+resultados(name_class_fc)
+
+
+# In[ ]:
+
+
+resultados(name_class_rf)
+
+
+# In[ ]:
+
+
+
 

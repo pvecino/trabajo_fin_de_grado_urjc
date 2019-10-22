@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -32,24 +32,27 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 
+from IPython.display import clear_output
+
+get_ipython().run_line_magic('autosave', '60')
 
 
 # In[ ]:
 
 
 def opened (path=''):
-
+    
     X_training=[]
     X_testing=[]
     y_training=[]
     y_testing=[]
-
+           
     for j in range(0, 50):
         X_training.append(pd.read_csv('test_train_dataset{}{}_X_train.csv'.format(path,j)))
         X_testing.append(pd.read_csv('test_train_dataset{}{}_X_test.csv'.format(path, j)))
         y_training.append(pd.read_csv('test_train_dataset{}{}_y_train.csv'.format(path, j)))
         y_testing.append(pd.read_csv('test_train_dataset{}{}_y_test.csv'.format(path, j)))
-
+        
     return X_training, X_testing, y_training, y_testing
 
 
@@ -58,12 +61,12 @@ def opened (path=''):
 
 def frequency (valor):
     max = 0
-    res = list(valor)[0]
-    for i in list(valor):
-        freq = list(valor).count(i)
-        if freq > max:
-            max = freq
-            res = i
+    res = list(valor)[0] 
+    for i in list(valor): 
+        freq = list(valor).count(i) 
+        if freq > max: 
+            max = freq 
+            res = i 
     valor = res
     return valor
 
@@ -82,17 +85,17 @@ def maximun (df, name):
 # In[ ]:
 
 
-def hyper_RF(path, features, name, multiclass=False):
-
+def hyper_RF(path, features, name, multiclass=False, best=False):
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     hyper= pd.read_csv('results/DT/DT_hyper_{}.csv'.format(name))
     Depth = (maximun(hyper, 'max_depth'))
     Split = (maximun(hyper, 'min_samples_split'))
-
-    turn_n_estimators = turn_n_estimators = [i for i in range(30,115,5)]
-
+    
+    turn_n_estimators = turn_n_estimators = [i for i in range(2,204)]
+            
     param_grid = [
             {
                 'n_estimators': turn_n_estimators
@@ -108,40 +111,53 @@ def hyper_RF(path, features, name, multiclass=False):
     mean=[]
     std=[]
     best_estimator=[]
-
-
-
+    
+    
+    
     for j in range(0, 50):
+        if best==False:
+            xtrain=x_train[j][features]
+            ytrain=y_train[j]
+        else:
+            print(x_train[j][features].shape)
+            droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
+            xtrain= droping[features]
+            print(xtrain.shape)
+            if multiclass==True:
+                ytrain=droping['CRG']
+            else:
+                ytrain=droping[['HP', 'Diabetes', 'Otros']]
+                
         print('Particion: ', j)
 
     #Normalizamos x_test y x_train con la misma media y variancia que x_train
         ss=StandardScaler()
-        ss.fit(x_train[j][features])
-        ss_train=ss.transform(x_train[j][features])
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
 
     #Buscamos los mejores parametros para esa división normalizada
         clf = GridSearchCV(RandomForestClassifier(criterion='entropy',max_depth=Depth,
-                                                  min_samples_split= Split), param_grid,
+                                                  min_samples_split= Split), param_grid, 
                            scoring='accuracy',cv=KFold(n_splits=5), n_jobs=-1)
-
+        
         if multiclass==True:
-            y_training = y_train[j].values.ravel()
+            y_training = ytrain.values.ravel()
         else:
-            y_training = y_train[j]
-
+            y_training = ytrain
+        
         clf.fit(ss_train,y_training)
 
     #Evaluamos el algortimo teniendo en cuenta que para la función GridSearchCV test es nuestro train
         best_index_Acc = np.nonzero(clf.cv_results_['rank_test_score'] == 1)[0][0]
-
+        
         best_estimator.append(clf.best_params_['n_estimators'])
 
         RF_acc_model.append(clf.cv_results_['mean_test_score'][best_index_Acc])
         RF_std.append(clf.cv_results_['std_test_score'][best_index_Acc])
 
         RF_evaluate.append([best_estimator[j], round(RF_acc_model[j],3), round(RF_std[j],3)])
-
-
+    
+             
     labels_comp = ['n_estimators', 'accuracy_model', 'std']
 
     comparacion=pd.DataFrame(data=RF_evaluate, columns = labels_comp)
@@ -155,20 +171,20 @@ def hyper_RF(path, features, name, multiclass=False):
 # In[ ]:
 
 
-def predict_RF(path, features, name, multiclass=False):
+def predict_RF(path, features, name, multiclass=False, best=False):
 
-
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     hyper= pd.read_csv('results/DT/DT_hyper_{}.csv'.format(name))
     Depth = (maximun(hyper, 'max_depth'))
     Split = (maximun(hyper, 'min_samples_split'))
-
+    
     hyper= pd.read_csv('results/RF/RF_hyper_{}.csv'.format(name))
     Estimators = (maximun(hyper, 'n_estimators'))
     print('Estimators: ', Estimators)
-
+    
     accuracy=[]
     hamming_losse=[]
     precision_macro=[]
@@ -177,31 +193,53 @@ def predict_RF(path, features, name, multiclass=False):
     recall_micro=[]
     f1_scores_macro=[]
     f1_scores_micro=[]
-
+    
     average_accuracy=[]
     average_precision=[]
     average_recall=[]
     f1_scores=[]
-
+    
     for i in range(0,50):
-        ss=StandardScaler()
-        ss.fit(x_train[i][features])
-        ss_train=ss.transform(x_train[i][features])
-        ss_test=ss.transform(x_test[i][features])
-
-        clf= RandomForestClassifier(criterion='entropy',max_depth=Depth,
-                                    min_samples_split= Split,
-                                    n_estimators=Estimators)
-
-        if multiclass==True:
-            y_training = y_train[i].values.ravel()
+        if best==False:
+            xtrain=x_train[i][features]
+            ytrain=y_train[i]
+            xtest=x_test[i][features]
+            ytest=y_test[i]
         else:
-            y_training = y_train[i]
+            print(x_train[i][features].shape)
+            droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
+            xtrain= droping_train[features]
+            print(xtrain.shape)
+            if multiclass==True:
+                ytrain=droping_train['CRG']
+            else:
+                ytrain=droping_train[['HP', 'Diabetes', 'Otros']]
+            
+            droping_test=pd.concat([x_test[i][features], y_test[i]], axis=1,sort=False)
+            xtest= droping_test[features]
+            if multiclass==True:
+                ytest=droping_test['CRG']
+            else:
+                ytest=droping_test[['HP', 'Diabetes', 'Otros']]
+                
+        ss=StandardScaler()
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
+        ss_test=ss.transform(xtest)
 
+        clf= RandomForestClassifier(criterion='entropy',max_depth=Depth, 
+                                    min_samples_split= Split, 
+                                    n_estimators=Estimators)
+        
+        if multiclass==True:
+            y_training = ytrain.values.ravel()
+        else:
+            y_training = ytrain
+               
         clf.fit(ss_train,y_training)
-
-        y_true, y_pred = y_test[i], clf.predict(ss_test)
-
+        
+        y_true, y_pred = ytest, clf.predict(ss_test)
+        
         if multiclass==False:
             accuracy.append(accuracy_score(y_true, y_pred))
             hamming_losse.append(hamming_loss(y_true, y_pred))
@@ -230,7 +268,7 @@ def predict_RF(path, features, name, multiclass=False):
             average_recall.append(np.mean(TP / (TP + FN)))
             f1_scores.append(np.mean(2*(precision*recall)/(precision+recall)))
             average_accuracy.append(accuracy_score(y_true, y_pred))
-
+        
     predict=pd.DataFrame()
     if multiclass==False:
         predict['accuracy']=accuracy
@@ -246,7 +284,7 @@ def predict_RF(path, features, name, multiclass=False):
         predict['precision']=average_precision
         predict['recall']=average_recall
         predict['f1']=f1_scores
-
+        
     predict.to_csv('results/RF/RF_predict_{}.csv'.format(name), index=False)
 
 
@@ -263,7 +301,7 @@ import os.path as path
 # In[ ]:
 
 
-names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill']
+names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill'] 
 features_freq = []
 for n in names:
     with open("feature_selection/freq_{}.txt".format(n), "r") as file:
@@ -281,15 +319,15 @@ names_CLASS_fr=['freq_all_class_O', 'freq_ill_class_O', 'freq_all_class_P', 'fre
 
 
 for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n, True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n, True)
@@ -309,15 +347,15 @@ names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'fre
 
 
 for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n)
@@ -349,15 +387,15 @@ names_label_rf=['rf_all_label_O','rf_ill_label_O', 'rf_all_label_P', 'rf_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_rf, features_rf_label):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n)
@@ -386,16 +424,16 @@ name_class_rf=['rf_all_class_O','rf_ill_class_O', 'rf_all_class_P', 'rf_ill_clas
 # In[ ]:
 
 
-for p, n, f in zip(path_class, name_class_rf, features_rf_class):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+for p, n, f in zip(path_class, name_class_rf, features_rf_class):  
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n, multiclass=True)
@@ -427,15 +465,15 @@ names_label_fc=['fc_all_label_O','fc_ill_label_O', 'fc_all_label_P', 'fc_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_fc, features_fc_label):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n)
@@ -465,15 +503,15 @@ name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_clas
 
 
 for p, n, f in zip(path_class, name_class_fc, features_rf_class):
-    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)):
+    if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_RF(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/RF/RF_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_RF(p, f, n, multiclass=True)
@@ -482,71 +520,183 @@ for p, n, f in zip(path_class, name_class_fc, features_rf_class):
         print()
 
 
-# # ## Resultados
+# ## Resultados
 
-# # In[ ]:
-
-
-# labels_names = names_LABEL_fr + names_label_fc + names_label_rf
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_etiqueta(names):
+    hyper_label=[]
+    predict_label=[]
+    for name in names:
+        hyper_label.append(pd.read_csv('results/RF/RF_hyper_{}.csv'.format(name)))
+        predict_label.append(pd.read_csv('results/RF/RF_predict_{}.csv'.format(name)))
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Estimators = (maximun(hyper_label[i], 'n_estimators'))
+        print('Estimators: ', Estimators)
+
+        print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
+        print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
+        print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
+        print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
+        print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
+        print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
+        print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
+        print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
+        print('---------------------------------------------------------------')
 
 
-# hyper_label=[]
-# predict_label=[]
-# for name in labels_names:
-#     hyper_label.append(pd.read_csv('results/RF/RF_hyper_{}.csv'.format(name)))
-#     predict_label.append(pd.read_csv('results/RF/RF_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_LABEL_fr)
 
 
-# for i, n in zip(range(0, len(labels_names)), labels_names):
-#     print(n)
-#     print()
-#     Estimators = (maximun(hyper_label[i], 'n_estimators'))
-#     print('Estimators: ', Estimators)
-
-#     print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
-#     #print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
-#     print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
-#     print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
-#     print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
-#     print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
-#     print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
-#     print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
-#     print('---------------------------------------------------------------')
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_fc)
 
 
-# classs_names = names_CLASS_fr + names_class_fc + names_class_rf
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_rf)
 
 
-# hyper_class=[]
-# predict_class=[]
-# for name in classs_names:
-#     hyper_class.append(pd.read_csv('results/RF/RF_hyper_{}.csv'.format(name)))
-#     predict_class.append(pd.read_csv('results/RF/RF_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_clase(names):
+    hyper_class=[]
+    predict_class=[]
+    for name in names:
+        hyper_class.append(pd.read_csv('results/RF/RF_hyper_{}.csv'.format(name)))
+        predict_class.append(pd.read_csv('results/RF/RF_predict_{}.csv'.format(name)))
+
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Estimators = (maximun(hyper_class[i], 'n_estimators'))
+        print('Estimators: ', Estimators)
+
+        print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
+        print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
+        print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
+        print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
+        print('---------------------------------------------------------------')
 
 
-# for i, n in zip(range(0, len(classs_names)), classs_names):
-#     print(n)
-#     print()
-#     Estimators = (maximun(hyper_class[i], 'n_estimators'))
-#     print('Estimators: ', Estimators)
+# In[ ]:
 
-#     print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
-#     print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
-#     print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
-#     print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
-#     print('---------------------------------------------------------------')
+
+resultados_clase(names_CLASS_fr)
+
+
+# In[ ]:
+
+
+resultados_clase(name_class_fc)
+
+
+# In[ ]:
+
+
+resultados_clase(name_class_rf)
+
+
+# # Mejor resultados
+
+# ## Multi-clase
+
+# In[ ]:
+
+
+names = ['fc_class_p_all', 'fc_class_p_ill']
+names_features=['atc', 'cie', 'cie_atc']
+features = []
+for n in names:
+    for f in names_features:
+        with open("feature_selection/best/{}_{}.txt".format(n, f), "r") as file:
+            features.append(eval(file.readline()))
+    features += [['Edad', 'Sexo']]
+paths_CLASS = ['/class/P_WC_A_', '/class/P_WC_WO_']
+names_CLASS=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc', 'fc_all_class_P_E_S', 
+             'fc_ill_class_P_atc', 'fc_ill_class_P_cie', 'fc_ill_class_P_cie_atc', 'fc_ill_class_P_E_S']
+
+
+# In[ ]:
+
+
+for p in paths_CLASS:
+    for n, f in zip(names_CLASS, features):
+        if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
+            print('Ya existe el hyperparametro:', n)
+        else:
+            hyper_RF(p, f, n, True, best=True)
+            print()
+            print('--------------------------------------------------------')
+            print()
+
+        if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
+            print('Ya existe los resultados:', n)
+        else:
+            predict_RF(p, f, n, True, best=True)
+            print()
+            print('--------------------------------------------------------')
+            print()
+
+
+# In[ ]:
+
+
+resultados_clase(names_CLASS)
+
+
+# ## multi-label
+
+# In[ ]:
+
+
+names = ['fc_label_p_all', 'fc_label_p_ill']
+names_features=['atc', 'cie', 'cie_atc']
+features = []
+for n in names:
+    for f in names_features:
+        with open("feature_selection/best/{}_{}.txt".format(n, f), "r") as file:
+            features.append(eval(file.readline()))
+    features += [['Edad', 'Sexo']]
+paths_label = ['/label/P_WL_A_', '/label/P_WL_WO_']
+names_label=['fc_all_label_P_atc', 'fc_all_label_P_cie', 'fc_all_label_P_cie_atc', 'fc_all_label_P_E_S', 
+             'fc_ill_label_P_atc', 'fc_ill_label_P_cie', 'fc_ill_label_P_cie_atc', 'fc_ill_label_P_E_S']
+
+
+# In[ ]:
+
+
+for p in paths_label:
+    for n, f in zip(names_label, features):
+        if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
+            print('Ya existe el hyperparametro:', n)
+        else:
+            hyper_RF(p, f, n, best=True)
+            print()
+            print('--------------------------------------------------------')
+            print()
+
+        if path.exists('results/RF/RF_predict_{}.csv'.format(n)): 
+            print('Ya existe los resultados:', n)
+        else:
+            predict_RF(p, f, n, best=True)
+            print()
+            print('--------------------------------------------------------')
+            print()
+
+
+# In[ ]:
+
+
+resultados_etiqueta(names_label)
+

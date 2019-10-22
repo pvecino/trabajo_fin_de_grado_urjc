@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -37,25 +37,24 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
 
-
 # ## Funciones a utilizar
 
 # In[ ]:
 
 
 def opened (path=''):
-
+    
     X_training=[]
     X_testing=[]
     y_training=[]
     y_testing=[]
-
+           
     for j in range(0, 50):
         X_training.append(pd.read_csv('test_train_dataset{}{}_X_train.csv'.format(path,j)))
         X_testing.append(pd.read_csv('test_train_dataset{}{}_X_test.csv'.format(path, j)))
         y_training.append(pd.read_csv('test_train_dataset{}{}_y_train.csv'.format(path, j)))
         y_testing.append(pd.read_csv('test_train_dataset{}{}_y_test.csv'.format(path, j)))
-
+        
     return X_training, X_testing, y_training, y_testing
 
 
@@ -64,12 +63,12 @@ def opened (path=''):
 
 def frequency (valor):
     max = 0
-    res = list(valor)[0]
-    for i in list(valor):
-        freq = list(valor).count(i)
-        if freq > max:
-            max = freq
-            res = i
+    res = list(valor)[0] 
+    for i in list(valor): 
+        freq = list(valor).count(i) 
+        if freq > max: 
+            max = freq 
+            res = i 
     valor = res
     return valor
 
@@ -84,25 +83,25 @@ def maximun (df, name):
 
 
 # #  Aplicación del algoritmo SVM Clasificador no lineal.
-#
+# 
 
 # In[ ]:
 
 
 def hyper_SVM(path, features, name, multiclass=False):
-
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     A1 = [i for i in (10.0 ** -np.arange(-1, 4))]
     A2 = [i for i in (0.25*10.0 ** -np.arange(-1, 3))]
     A3 = [i for i in (0.5*10.0 ** -np.arange(-1, 3))]
     A4 = [i for i in (0.75*10.0 ** -np.arange(-1, 3))]
     turn_c = sorted(A1+A2+A3+A4)
     turn_c[7] = 0.075
-
+    
     turn_gamma = np.logspace(-9, 3, 13)
-
+    
     if multiclass==True:
         model_to_set = SVC(kernel='rbf')
         c='C'
@@ -111,10 +110,10 @@ def hyper_SVM(path, features, name, multiclass=False):
         model_to_set = OneVsRestClassifier(SVC(kernel='rbf'))
         c='estimator__C'
         gamma='estimator__gamma'
-
+        
     param_grid = [
             {
-                c : turn_c,
+                c : turn_c, 
                 gamma:turn_gamma
             }
            ]
@@ -129,9 +128,9 @@ def hyper_SVM(path, features, name, multiclass=False):
     std=[]
     best_c=[]
     best_gamma=[]
-
+    
     print('Empezamos a buscar los méjores parámetros')
-
+    
     for j in range(0, 50):
         print('Particion: ', j)
 
@@ -141,13 +140,13 @@ def hyper_SVM(path, features, name, multiclass=False):
         ss_train=ss.transform(x_train[j][features])
 
     #Buscamos los mejores parametros para esa división normalizada
-        clf = GridSearchCV(model_to_set, param_grid, scoring='accuracy',
+        clf = GridSearchCV(model_to_set, param_grid, scoring='accuracy', 
                                cv=KFold(n_splits=5), n_jobs=-1)
         if multiclass==True:
             y_training = y_train[j].values.ravel()
         else:
             y_training = y_train[j]
-
+        
         clf.fit(ss_train,y_training)
 
     #Evaluamos el algortimo teniendo en cuenta que para la función GridSearchCV test es nuestro train
@@ -158,54 +157,54 @@ def hyper_SVM(path, features, name, multiclass=False):
         SVM_acc_model.append(clf.cv_results_['mean_test_score'][best_index_Acc])
         SVM_std.append(clf.cv_results_['std_test_score'][best_index_Acc])
 
-        SVM_evaluate.append([best_c[j],best_gamma[j], round(SVM_acc_model[j],3),
+        SVM_evaluate.append([best_c[j],best_gamma[j], round(SVM_acc_model[j],3), 
                              round(SVM_std[j],3)])
-
+        
     labels_comp = ['c','gamma','accuracy_model', 'std']
 
     comparacion=pd.DataFrame(data=SVM_evaluate, columns = labels_comp)
 
     comparacion.to_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name), index=False)
 
-
+    
 
 
 # In[ ]:
 
 
 def predict_SVM(path, features, name, multiclass=False):
-
+    
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
-
+    
     comparacion=pd.read_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name))
-
+    
     Best_C = (maximun(comparacion, 'c'))
     print('C: ', Best_C)
     Best_Gamma = (maximun(comparacion, 'gamma'))
     print('Gamma: ', Best_Gamma)
-
+    
     print('Con los parámetros óptimos procedemos a clasificar.')
-
+    
     accuracy=[]
-    hamming_losse=[]
+    hamming_loss=[]
     precision_macro=[]
     precision_micro=[]
     recall_macro=[]
     recall_micro=[]
     f1_scores_macro=[]
     f1_scores_micro=[]
-
+    
     average_accuracy=[]
     average_precision=[]
     average_recall=[]
     f1_scores=[]
-
+    
     if multiclass==True:
         model = SVC(kernel='rbf', C= Best_C, gamma= Best_Gamma)
     else:
         model= OneVsRestClassifier(SVC(kernel='rbf', C= Best_C, gamma= Best_Gamma))
-
+    
     for i in range(0,50):
         ss=StandardScaler()
         ss.fit(x_train[i][features])
@@ -213,12 +212,12 @@ def predict_SVM(path, features, name, multiclass=False):
         ss_test=ss.transform(x_test[i][features])
 
         clf= model
-
+        
         if multiclass==True:
             y_training = y_train[i].values.ravel()
         else:
             y_training = y_train[i]
-
+               
         clf.fit(ss_train,y_training)
 
     #Predecimos el algoritmo con el mejor K
@@ -227,7 +226,7 @@ def predict_SVM(path, features, name, multiclass=False):
 
         if multiclass==False:
             accuracy.append(accuracy_score(y_true, y_pred))
-            hamming_losse.append(hamming_loss(y_true, y_pred))
+            #hamming_loss.append(hamming_loss(y_true, y_pred))
             precision_macro.append(precision_score(y_true,y_pred, average='macro'))
             precision_micro.append(precision_score(y_true,y_pred, average='micro'))
             recall_macro.append(recall_score(y_true, y_pred, average='macro'))
@@ -253,11 +252,11 @@ def predict_SVM(path, features, name, multiclass=False):
             average_recall.append(np.mean(TP / (TP + FN)))
             f1_scores.append(np.mean(2*(precision*recall)/(precision+recall)))
             average_accuracy.append(accuracy_score(y_true, y_pred))
-
+        
     predict=pd.DataFrame()
     if multiclass==False:
         predict['accuracy']=accuracy
-        predict['hamming_loss'] = hamming_losse
+        #predict['hamming_loss'] = hamming_loss
         predict['precision_macro']=precision_macro
         predict['precision_micro']=precision_micro
         predict['recall_macro']=recall_macro
@@ -269,8 +268,14 @@ def predict_SVM(path, features, name, multiclass=False):
         predict['precision']=average_precision
         predict['recall']=average_recall
         predict['f1']=f1_scores
-
+    
     predict.to_csv('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(name), index=False)
+    
+
+
+# In[ ]:
+
+
 
 
 
@@ -287,7 +292,7 @@ import os.path as path
 # In[ ]:
 
 
-names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill']
+names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill'] 
 features_freq = []
 for n in names:
     with open("feature_selection/freq_{}.txt".format(n), "r") as file:
@@ -305,15 +310,15 @@ names_CLASS_fr=['freq_all_class_O', 'freq_ill_class_O', 'freq_all_class_P', 'fre
 
 
 for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_SVM(p, f, n, True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_SVM(p, f, n, True)
@@ -333,18 +338,18 @@ names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'fre
 
 
 for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
-        hyper_SVM(p, f, n)
+        hyper_SVM(p, freq_features_illness, n, b)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n)
+        predict_SVM(p, freq_features_illness, n, b)
         print()
         print('--------------------------------------------------------')
         print()
@@ -373,15 +378,15 @@ names_label_rf=['rf_all_label_O','rf_ill_label_O', 'rf_all_label_P', 'rf_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_rf, features_rf_label):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_SVM(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_SVM(p, f, n)
@@ -410,16 +415,16 @@ name_class_rf=['rf_all_class_O','rf_ill_class_O', 'rf_all_class_P', 'rf_ill_clas
 # In[ ]:
 
 
-for p, n, f in zip(path_class, name_class_rf, features_rf_class):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+for p, n, f in zip(path_class, name_class_rf, features_rf_class):   
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_SVM(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_SVM(p, f, n, multiclass=True)
@@ -451,15 +456,15 @@ names_label_fc=['fc_all_label_O','fc_ill_label_O', 'fc_all_label_P', 'fc_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_fc, features_fc_label):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_SVM(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_SVM(p, f, n)
@@ -488,16 +493,16 @@ name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_clas
 # In[ ]:
 
 
-for p, n, f in zip(path_class, name_class_fc, features_fc_class):
-    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)):
+for p, n, f in zip(path_class, name_class_fc, features_fc_class): 
+    if path.exists('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(n)): 
         print('Ya existe el hyperparametro:', n)
     else:
         hyper_SVM(p, f, n, multiclass=True)
         print()
         print('--------------------------------------------------------')
         print()
-
-    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)):
+    
+    if path.exists('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
         predict_SVM(p, f, n, multiclass=True)
@@ -506,75 +511,96 @@ for p, n, f in zip(path_class, name_class_fc, features_fc_class):
         print()
 
 
-# # ### Resultados
+# ### Resultados
 
-# # In[ ]:
-
-
-# labels_names = names_LABEL_fr + names_label_fc + names_label_rf
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_etiqueta(names): 
+    hyper_label=[]
+    predict_label=[]
+    for name in names:
+        hyper_label.append(pd.read_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name)))
+        predict_label.append(pd.read_csv('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(name)))
+
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Best_C = (maximun(hyper_label[i], 'c'))
+        print('C: ', Best_C)
+        Best_Gamma = (maximun(hyper_label[i], 'gamma'))
+        print('Gamma: ', Best_Gamma)
+
+        print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
+        print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
+        print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
+        print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
+        print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
+        print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
+        print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
+        print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
+        print('---------------------------------------------------------------')
 
 
-# hyper_label=[]
-# predict_label=[]
-# for name in labels_names:
-#     hyper_label.append(pd.read_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name)))
-#     predict_label.append(pd.read_csv('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(name)))
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_LABEL_fr)
 
 
-# for i, n in zip(range(0, len(labels_names)), labels_names):
-#     print(n)
-#     print()
-#     Best_C = (maximun(hyper_label[i], 'c'))
-#     print('C: ', Best_C)
-#     Best_Gamma = (maximun(hyper_label[i], 'gamma'))
-#     print('Gamma: ', Best_Gamma)
-
-#     print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
-#     #print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
-#     print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
-#     print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
-#     print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
-#     print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
-#     print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
-#     print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
-#     print('---------------------------------------------------------------')
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_fc)
 
 
-# classs_names = names_CLASS_fr + names_class_fc + names_class_rf
+# In[ ]:
 
 
-# # In[ ]:
+resultados_etiqueta(names_label_rf)
 
 
-# hyper_class=[]
-# predict_class=[]
-# for name in classs_names:
-#     hyper_class.append(pd.read_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name)))
-#     predict_class.append(pd.read_csv('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(name)))
+# -------------------------------
+
+# In[ ]:
 
 
-# # In[ ]:
+def resultados_clases(names):
+    hyper_class=[]
+    predict_class=[]
+    for name in names:
+        hyper_class.append(pd.read_csv('results/SVM_OvR/SVM_OvR_hyper_{}.csv'.format(name)))
+        predict_class.append(pd.read_csv('results/SVM_OvR/SVM_OvR_predict_{}.csv'.format(name)))
+
+    for i, n in zip(range(0, len(names)), names):
+        print(n)
+        print()
+        Best_C = (maximun(hyper_label[i], 'c'))
+        print('C: ', Best_C)
+        Best_Gamma = (maximun(hyper_label[i], 'gamma'))
+        print('Gamma: ', Best_Gamma)
+
+        print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
+        print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
+        print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
+        print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
+        print('---------------------------------------------------------------')
 
 
-# for i, n in zip(range(0, len(classs_names)), classs_names):
-#     print(n)
-#     print()
-#     Depth = (maximun(hyper_class[i], 'max_depth'))
-#     print('Max Depth:', Depth)
-#     Split = (maximun(hyper_class[i], 'min_samples_split'))
-#     print('Min Samples Split: ', Split)
+# In[ ]:
 
-#     print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
-#     print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
-#     print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
-#     print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
-#     print('---------------------------------------------------------------')
+
+resultados_clases(names_CLASS_fr)
+
+
+# In[ ]:
+
+
+resultados_clases(name_class_fc)
+
+
+# In[ ]:
+
+
+resultados_clases(name_class_rf)
+
