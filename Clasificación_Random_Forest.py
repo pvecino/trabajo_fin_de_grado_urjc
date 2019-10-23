@@ -34,8 +34,6 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 
 from IPython.display import clear_output
 
-get_ipython().run_line_magic('autosave', '60')
-
 
 # In[ ]:
 
@@ -619,8 +617,15 @@ names_CLASS=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc
 # In[ ]:
 
 
-for p in paths_CLASS:
-    for n, f in zip(names_CLASS, features):
+k=['all','ill']
+for p, i in zip(paths_CLASS, k):
+    if i=='all':
+        names = names_CLASS[0:4]
+        feat = features[0:4]
+    else:
+        names = names_CLASS[4:8]
+        feat = features[4:8]
+    for n, f in zip( names, feat):
         if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
             print('Ya existe el hyperparametro:', n)
         else:
@@ -665,8 +670,15 @@ names_label=['fc_all_label_P_atc', 'fc_all_label_P_cie', 'fc_all_label_P_cie_atc
 # In[ ]:
 
 
-for p in paths_label:
-    for n, f in zip(names_label, features):
+k=['all','ill']
+for p, i in zip(paths_label, k):
+    if i=='all':
+        names = names_label[0:4]
+        feat = features[0:4]
+    else:
+        names = names_label[4:8]
+        feat = features[4:8]
+    for n, f in zip( names, feat):
         if path.exists('results/RF/RF_hyper_{}.csv'.format(n)): 
             print('Ya existe el hyperparametro:', n)
         else:
