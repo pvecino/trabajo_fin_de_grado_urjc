@@ -9,10 +9,10 @@ import numpy as np
 import itertools
 from random import randint
 
+
 # import sklearn
 
-from sklearn.svm import SVC
-from sklearn.multiclass import OneVsRestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
 from sklearn.model_selection import KFold
@@ -23,33 +23,15 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import hamming_loss
 from sklearn.model_selection import GridSearchCV
+
 # dataframe management
 import pandas as pd
 
-from sklearn.exceptions import DataConversionWarning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
-warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
-
-get_ipython().run_line_magic('autosave', '60')
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# ## Funciones a utilizar
 
 # In[ ]:
 
@@ -89,54 +71,94 @@ def frequency (valor):
 
 
 def maximun (df, name):
-    maximun = df.sort_values(by='accuracy_model',ascending=False).head(n=1)
+    maximun = df.sort_values(by='accuracy_validation',ascending=False).head(n=1)
     best = list(maximun[name])[0]
     return best
 
 
-# #  Aplicación del algoritmo SVM Clasificador lineal.
+# In[ ]:
+
+
+def parameters(i):
+    max_layers = 60#204
+    min_layers = 10#5
+    switcher={
+            'activation':[ 'tanh', 'relu'],
+            'solver': ['sgd'], #['sgd', 'adam'],
+            'hidden_layer_sizes':[(i,) for i in range(min_layers,max_layers, 2)]
+         }
+    return switcher.get(i,"Invalid parameters")
+
 
 # In[ ]:
 
 
-def hyper_SVM(path, features, name, multiclass=False):
+def Layersint(Layers):
+    Layers = tuple(Layers)
+    maxi=len(Layers)
+    cal=0
+    res=[]
+    for i in range(0, maxi):
+        if Layers[i]=="(" or Layers[i]=="," or Layers[i]==")":
+            res += str(Layers[i])
+        else:
+            if maxi==6:
+                if i==1:
+                    cal = int(Layers[i])*100
+                elif i==2:
+                    cal += int(Layers[i])*10
+                else:
+                    cal +=int(Layers[i])
+            elif maxi==5:
+                if i==1:
+                    cal = int(Layers[i])*10
+                else:
+                    cal += int(Layers[i])
+            else:
+                cal = int(Layers[i])
+
+    return cal
+
+
+# #  Aplicación del algoritmo MLP
+
+# In[ ]:
+
+
+def hyper_MLP(path, features, name, param, multiclass=False):
     
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
     
-    A1 = [i for i in (10.0 ** -np.arange(-1, 4))]
-    A2 = [i for i in (0.25*10.0 ** -np.arange(-1, 3))]
-    A3 = [i for i in (0.5*10.0 ** -np.arange(-1, 3))]
-    A4 = [i for i in (0.75*10.0 ** -np.arange(-1, 3))]
-    turn_c = sorted(A1+A2+A3+A4)
-    turn_c[7] = 0.075
-    
-    if multiclass==True:
-        model_to_set = SVC(kernel='linear')
-        c='C'
-    else:
-        model_to_set = OneVsRestClassifier(SVC(kernel='linear'))
-        c='estimator__C'
-        
     param_grid = [
-            {
-                c : turn_c
-            }
-           ]
+        {
+            param: parameters(param)
+        }
+       ]
+    MLP_evaluate=[]
+    MLP_acc_model=[]
+    MLP_std=[]
 
-    SVM_evaluate=[]
-    SVM_acc_model=[]
-    SVM_error=[]
-    SVM_std=[]
-
-
-    mean=[]
-    std=[]
-    best_c=[]
-    best_gamma=[]
+    best_param=[]
     
-    print('Empezamos a buscar los méjores parámetros')
-    
+    if param == 'hidden_layer_sizes':
+        rest = ['activation', 'solver']
+        resto=[]
+        for r in rest:
+            resto.append(pd.read_csv('results/MLP/MLP_hyper_{}_{}.csv'.format(r, name)))
+
+        Activation = (maximun(resto[0], rest[0]))
+        print(Activation)
+        Solver = (maximun(resto[1], rest[1]))
+        print(Solver)
+        
+        model = MLPClassifier(max_iter=400, learning_rate_init=0.2, 
+                              learning_rate='invscaling', alpha = 1.0, 
+                              solver=Solver, activation=Activation) 
+    else:
+        model = MLPClassifier(max_iter=400, learning_rate_init=0.2,
+                              learning_rate='invscaling', alpha = 1.0)
+        
     for j in range(0, 50):
         
         droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
@@ -146,53 +168,54 @@ def hyper_SVM(path, features, name, multiclass=False):
             ytrain=droping['CRG']
         else:
             ytrain=droping[['HP', 'Diabetes', 'Otros']]
-
-    #Normalizamos x_test y x_train con la misma media y variancia que x_train
+                
+        print('Particion: ', j)
+    #Normalizamos los datos de test y de train
         ss=StandardScaler()
         ss.fit(xtrain)
         ss_train=ss.transform(xtrain)
-
-    #Buscamos los mejores parametros para esa división normalizada
-        clf = GridSearchCV(model_to_set, param_grid, scoring='accuracy', 
-                               cv=KFold(n_splits=5), n_jobs=-1)
+        #Buscamos los mejores parametros para esa división normalizada    
+        clf = GridSearchCV(model, param_grid,
+                           cv=KFold(n_splits=5), scoring='accuracy', n_jobs=-1)
         if multiclass==True:
             y_training = ytrain.values.ravel()
         else:
             y_training = ytrain
-        
+
         clf.fit(ss_train,y_training)
 
-    #Evaluamos el algortimo teniendo en cuenta que para la función GridSearchCV test es nuestro train
         best_index_Acc = np.nonzero(clf.cv_results_['rank_test_score'] == 1)[0][0]
-        best_c.append(clf.best_params_[c])
+        best_param.append(clf.best_params_[param])
+        MLP_acc_model.append(clf.cv_results_['mean_test_score'][best_index_Acc])
+        MLP_std.append(clf.cv_results_['std_test_score'][best_index_Acc])
 
-        SVM_acc_model.append(clf.cv_results_['mean_test_score'][best_index_Acc])
-        SVM_std.append(clf.cv_results_['std_test_score'][best_index_Acc])
+        MLP_evaluate.append([best_param[j],  round(MLP_acc_model[j],3),round(MLP_std[j],3)])
 
-        SVM_evaluate.append([best_c[j], round(SVM_acc_model[j],3), 
-                             round(SVM_std[j],3)])
-        print('Particion: ', j)
-    
-             
-    labels_comp = ['c', 'accuracy_model', 'std']
+    labels_comp = [param , 'accuracy_validation', 'std']
 
-    comparacion=pd.DataFrame(data=SVM_evaluate, columns = labels_comp)
-
-    comparacion.to_csv('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(name), index=False)
+    comparacion=pd.DataFrame(data=MLP_evaluate, columns = labels_comp)
+    comparacion.to_csv('results/MLP/MLP_hyper_{}_{}.csv'.format(param, name), index=False)
 
 
 # In[ ]:
 
 
-def predict_SVM(path, features, name, multiclass=False):
+def predict_MLP(path, features, name, multiclass=False):
     
     x_train, x_test, y_train, y_test = opened(path=path)
     print('Terminada la apertura de BBDD')
     
-    comparacion = pd.read_csv('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(name))
-    Best_C = (maximun(comparacion, 'c'))
-    print('C: ', Best_C)
+    param= ['activation', 'solver', 'hidden_layer_sizes']
+    comparacion=[]
+    for p in param:
+        comparacion.append(pd.read_csv('results/MLP/MLP_hyper_{}_{}.csv'.format(p, name)))
     
+    Activation = (maximun(comparacion[0], param[0]))
+    print(Activation)
+    Solver = (maximun(comparacion[1], param[1]))
+    print(Solver)
+    Layer = Layersint(maximun(comparacion[2], param[2]))
+    print(Layer)
     print('Con los parámetros óptimos procedemos a clasificar.')
     
     accuracy=[]
@@ -209,13 +232,7 @@ def predict_SVM(path, features, name, multiclass=False):
     average_recall=[]
     f1_scores=[]
     
-    if multiclass==True:
-        model = SVC(kernel='linear', C= Best_C)
-    else:
-        model= OneVsRestClassifier(SVC(kernel='linear', C= Best_C))
-    
     for i in range(0,50):
-        
         droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
         droping_train=droping_train.drop_duplicates(subset=features, keep=False)
         xtrain= droping_train[features]
@@ -237,7 +254,9 @@ def predict_SVM(path, features, name, multiclass=False):
         ss_train=ss.transform(xtrain)
         ss_test=ss.transform(xtest)
 
-        clf= model
+        clf= MLPClassifier(max_iter=400, learning_rate_init=0.2, activation=Activation, 
+                           solver=Solver, hidden_layer_sizes= (Layer,), alpha = 1.0, 
+                           learning_rate='invscaling')
         
         if multiclass==True:
             y_training = ytrain.values.ravel()
@@ -248,7 +267,7 @@ def predict_SVM(path, features, name, multiclass=False):
 
     #Predecimos el algoritmo con el mejor K
         y_true, y_pred = ytest, clf.predict(ss_test)
-
+        
         if multiclass==False:
             accuracy.append(accuracy_score(y_true, y_pred))
             hamming_losse.append(hamming_loss(y_true, y_pred))
@@ -293,20 +312,17 @@ def predict_SVM(path, features, name, multiclass=False):
         predict['precision']=average_precision
         predict['recall']=average_recall
         predict['f1']=f1_scores
-        
-    predict.to_csv('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(name), index=False)
-    
+    predict.to_csv('results/MLP/MLP_predict_{}.csv'.format(name), index=False)
 
 
-# ## Bucles para las diferentes ejecuciones
+# ### Selección de Caracteriticas: Frecuencia
 
 # In[ ]:
 
 
 import os.path as path
+param= ['activation', 'solver', 'hidden_layer_sizes']
 
-
-# ### Selección de Caracteriticas: Frecuencia
 
 # In[ ]:
 
@@ -329,18 +345,19 @@ names_CLASS_fr=['freq_all_class_O', 'freq_ill_class_O', 'freq_all_class_P', 'fre
 
 
 for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n, True, best=False)
-        print()
-        print('--------------------------------------------------------')
-        print()
-    
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m, True)
+            print()
+            print('--------------------------------------------------------')
+            print()
+
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n, True)
+        predict_MLP(p, f, n, True)
         print()
         print('--------------------------------------------------------')
         print()
@@ -350,25 +367,26 @@ for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
 
 
 paths_LABEL = ['/label/O_WL_A_','/label/O_WL_WO_' , '/label/P_WL_A_', '/label/P_WL_WO_']
-names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'freq_ill_label_P'] 
+names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'freq_ill_label_P']
 
 
 # In[ ]:
 
 
 for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n, best=False)
-        print()
-        print('--------------------------------------------------------')
-        print()
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m)
+            print()
+            print('--------------------------------------------------------')
+            print()
     
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n)
+        predict_MLP(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
@@ -397,18 +415,19 @@ names_label_rf=['rf_all_label_O','rf_ill_label_O', 'rf_all_label_P', 'rf_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_rf, features_rf_label):
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n)
-        print()
-        print('--------------------------------------------------------')
-        print()
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m)
+            print()
+            print('--------------------------------------------------------')
+            print()
     
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n)
+        predict_MLP(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
@@ -434,19 +453,20 @@ name_class_rf=['rf_all_class_O','rf_ill_class_O', 'rf_all_class_P', 'rf_ill_clas
 # In[ ]:
 
 
-for p, n, f in zip(path_class, name_class_rf, features_rf_class): 
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n, multiclass=True, best=False)
-        print()
-        print('--------------------------------------------------------')
-        print()
+for p, n, f in zip(path_class, name_class_rf, features_rf_class):
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m,True)
+            print()
+            print('--------------------------------------------------------')
+            print()
     
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n, multiclass=True)
+        predict_MLP(p, f, n, True)
         print()
         print('--------------------------------------------------------')
         print()
@@ -475,18 +495,19 @@ names_label_fc=['fc_all_label_O','fc_ill_label_O', 'fc_all_label_P', 'fc_ill_lab
 
 
 for p, n, f in zip(path_label, names_label_fc, features_fc_label):
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n)
-        print()
-        print('--------------------------------------------------------')
-        print()
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m)
+            print()
+            print('--------------------------------------------------------')
+            print()
     
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n)
+        predict_MLP(p, f, n)
         print()
         print('--------------------------------------------------------')
         print()
@@ -513,90 +534,97 @@ name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_clas
 
 
 for p, n, f in zip(path_class, name_class_fc, features_fc_class):
-    if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-        print('Ya existe el hyperparametro:', n)
-    else:
-        hyper_SVM(p, f, n, multiclass=True)
-        print()
-        print('--------------------------------------------------------')
-        print()
+    for m in param:        
+        if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+            print('Ya existe el hyperparametro:', n, m)
+        else:
+            hyper_MLP(p, f, n, m,True)
+            print()
+            print('--------------------------------------------------------')
+            print()
     
-    if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+    if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
         print('Ya existe los resultados:', n)
     else:
-        predict_SVM(p, f, n, multiclass=True)
+        predict_MLP(p, f, n, True)
         print()
         print('--------------------------------------------------------')
         print()
 
 
-# ### Resultados
+# ### Resultados:
 
 # In[ ]:
 
 
-def resultados_etiqueta(names):
-    hyper_label=[]
-    predict_label=[]
-    for name in names:
-        hyper_label.append(pd.read_csv('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(name)))
-        predict_label.append(pd.read_csv('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(name)))
-
-    for i, n in zip(range(0, len(names)), names):
+def resultados_etiquetas(names):
+    for n in  names:
         print(n)
         print()
-        Best_C = float(maximun(hyper_label[i], 'c'))
-        print('C: ', Best_C)
+        hyper=[]
+        for p in param:
+            hyper.append(pd.read_csv('results/MLP/MLP_hyper_{}_{}.csv'.format(p, n)))
+        Activation = (maximun(hyper[0], param[0]))
+        print(Activation)
+        Solver = (maximun(hyper[1], param[1]))
+        print(Solver)
+        Layer = Layersint(maximun(hyper[2], param[2]))
+        print(Layer)
 
-        print('Tasa de acierto:', round(np.mean(predict_label[i]['accuracy']), 3), '+/-', round(np.std(predict_label[i]['accuracy']), 3))
-        print('Tasa de Hamming Loss:', round(np.mean(predict_label[i]['hamming_loss']), 3), '+/-', round(np.std(predict_label[i]['hamming_loss']), 3))
-        print('Tasa de precision(macro)', round(np.mean(predict_label[i]['precision_macro']), 3), '+/-', round(np.std(predict_label[i]['precision_macro']), 3))
-        print('Tasa de precision(micro)', round(np.mean(predict_label[i]['precision_micro']), 3), '+/-', round(np.std(predict_label[i]['precision_micro']), 3))
-        print('Tasa de exactitud(macro):', round(np.mean(predict_label[i]['recall_macro']), 3),  '+/-', round(np.std(predict_label[i]['recall_macro']), 3))
-        print('Tasa de exactitud(micro):', round(np.mean(predict_label[i]['recall_micro']), 3),  '+/-', round(np.std(predict_label[i]['recall_micro']), 3))
-        print('Tasa F1-Score(macro)', round(np.mean(predict_label[i]['f1_macro']), 3) , '+/-', round(np.std(predict_label[i]['f1_macro']),3))
-        print('Tasa F1-Score(micro)', round(np.mean(predict_label[i]['f1_micro']), 3) , '+/-', round(np.std(predict_label[i]['f1_micro']),3))
+        predict = pd.read_csv('results/MLP/MLP_predict_{}.csv'.format(n))
+
+        print('Tasa de acierto:', round(np.mean(predict['accuracy']), 3), '+/-', round(np.std(predict['accuracy']), 3))
+        print('Tasa de Hamming Loss:', round(np.mean(predict['hamming_loss']), 3), '+/-', round(np.std(predict['hamming_loss']), 3))
+        print('Tasa de precision(macro)', round(np.mean(predict['precision_macro']), 3), '+/-', round(np.std(predict['precision_macro']), 3))
+        print('Tasa de precision(micro)', round(np.mean(predict['precision_micro']), 3), '+/-', round(np.std(predict['precision_micro']), 3))
+        print('Tasa de exactitud(macro):', round(np.mean(predict['recall_macro']), 3),  '+/-', round(np.std(predict['recall_macro']), 3))
+        print('Tasa de exactitud(micro):', round(np.mean(predict['recall_micro']), 3),  '+/-', round(np.std(predict['recall_micro']), 3))
+        print('Tasa F1-Score(macro)', round(np.mean(predict['f1_macro']), 3) , '+/-', round(np.std(predict['f1_macro']),3))
+        print('Tasa F1-Score(micro)', round(np.mean(predict['f1_micro']), 3) , '+/-', round(np.std(predict['f1_micro']),3))
         print('---------------------------------------------------------------')
 
 
 # In[ ]:
 
 
-resultados_etiqueta(names_LABEL_fr)
+resultados_etiquetas(names_LABEL_fr)
 
 
 # In[ ]:
 
 
-resultados_etiqueta(names_label_fc)
+resultados_etiquetas(names_label_fc)
 
 
 # In[ ]:
 
 
-resultados_etiqueta(names_label_rf)
+resultados_etiquetas(names_label_rf)
 
 
 # In[ ]:
 
 
 def resultados_clases(names):
-    hyper_class=[]
-    predict_class=[]
-    for name in names:
-        hyper_class.append(pd.read_csv('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(name)))
-        predict_class.append(pd.read_csv('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(name)))
-
-    for i, n in zip(range(0, len(names)), names):
+    for n in  names:
         print(n)
         print()
-        Best_C = float(maximun(hyper_class[i], 'c'))
-        print('C: ', Best_C)
+        hyper=[]
+        for p in param:
+            hyper.append(pd.read_csv('results/MLP/MLP_hyper_{}_{}.csv'.format(p, n)))
+        Activation = (maximun(hyper[0], param[0]))
+        print(Activation)
+        Solver = (maximun(hyper[1], param[1]))
+        print(Solver)
+        Layer = Layersint(maximun(hyper[2], param[2]))
+        print(Layer)
 
-        print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
-        print('Tasa de precision', round(np.mean(predict_class[i]['precision']), 3), '+/-', round(np.std(predict_class[i]['precision']), 3))
-        print('Tasa de exactitud:', round(np.mean(predict_class[i]['recall']), 3),  '+/-', round(np.std(predict_class[i]['recall']), 3))
-        print('Tasa F1-Score', round(np.mean(predict_class[i]['f1']), 3) , '+/-', round(np.std(predict_class[i]['f1']),3))
+        predict = pd.read_csv('results/MLP/MLP_predict_{}.csv'.format(n))
+
+        print('Tasa de acierto:', round(np.mean(predict['accuracy']), 3), '+/-', round(np.std(predict['accuracy']), 3))
+        print('Tasa de precision', round(np.mean(predict['precision']), 3), '+/-', round(np.std(predict['precision']), 3))
+        print('Tasa de exactitud:', round(np.mean(predict['recall']), 3),  '+/-', round(np.std(predict['recall']), 3))
+        print('Tasa F1-Score', round(np.mean(predict['f1']), 3) , '+/-', round(np.std(predict['f1']),3))
         print('---------------------------------------------------------------')
 
 
@@ -641,20 +669,21 @@ names_CLASS=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc
 # In[ ]:
 
 
-for p in paths_CLASS:
-    for n, f in zip( names_CLASS, features):
-        if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-            print('Ya existe el hyperparametro:', n)
-        else:
-            hyper_SVM(p, f, n, True)
-            print()
-            print('--------------------------------------------------------')
-            print()
+for p  in paths_CLASS:
+    for n,f in zip(names_CLASS, features):
+        for m in param:        
+            if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+                print('Ya existe el hyperparametro:', n, m)
+            else:
+                hyper_MLP(p, f, n, m, True)
+                print()
+                print('--------------------------------------------------------')
+                print()
 
-        if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+        if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
             print('Ya existe los resultados:', n)
         else:
-            predict_SVM(p, f, n, True)
+            predict_MLP(p, f, n, True)
             print()
             print('--------------------------------------------------------')
             print()
@@ -666,7 +695,7 @@ for p in paths_CLASS:
 resultados_clases(names_CLASS)
 
 
-# ## Multi-etiqueta
+# ## Multi-label
 
 # In[ ]:
 
@@ -687,20 +716,21 @@ names_label=['fc_all_label_P_atc', 'fc_all_label_P_cie', 'fc_all_label_P_cie_atc
 # In[ ]:
 
 
-for p in paths_label:
-    for n, f in zip( names_label, features):
-        if path.exists('results/lSVM_OvR/lSVM_OVR_hyper_{}.csv'.format(n)): 
-            print('Ya existe el hyperparametro:', n)
-        else:
-            hyper_SVM(p, f, n)
-            print()
-            print('--------------------------------------------------------')
-            print()
+for p  in paths_label:
+    for n,f in zip(names_label, features):
+        for m in param:        
+            if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
+                print('Ya existe el hyperparametro:', n, m)
+            else:
+                hyper_MLP(p, f, n, m, True)
+                print()
+                print('--------------------------------------------------------')
+                print()
 
-        if path.exists('results/lSVM_OvR/lSVM_OVR_predict_{}.csv'.format(n)): 
+        if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
             print('Ya existe los resultados:', n)
         else:
-            predict_SVM(p, f, n)
+            predict_MLP(p, f, n, True)
             print()
             print('--------------------------------------------------------')
             print()
@@ -709,7 +739,7 @@ for p in paths_label:
 # In[ ]:
 
 
-resultados_etiqueta(names_label)
+resultados_etiquetas(names_label)
 
 
 # In[ ]:

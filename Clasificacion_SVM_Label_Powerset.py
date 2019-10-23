@@ -130,20 +130,29 @@ def hyper_SVM(path, features, name, multiclass=False):
     print('Empezamos a buscar los méjores parámetros')
     
     for j in range(0, 50):
+        
+        droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
+        droping=droping.drop_duplicates(subset=features, keep=False)
+        xtrain= droping[features]
+        if multiclass==True:
+            ytrain=droping['CRG']
+        else:
+            ytrain=droping[['HP', 'Diabetes', 'Otros']]
+        
         print('Particion: ', j)
 
     #Normalizamos x_test y x_train con la misma media y variancia que x_train
         ss=StandardScaler()
-        ss.fit(x_train[j][features])
-        ss_train=ss.transform(x_train[j][features])
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
 
     #Buscamos los mejores parametros para esa división normalizada
         clf = GridSearchCV(model_to_set, param_grid, scoring='accuracy', 
                                cv=KFold(n_splits=5), n_jobs=-1)
         if multiclass==True:
-            y_training = y_train[j].values.ravel()
+            y_training = ytrain.values.ravel()
         else:
-            y_training = y_train[j]
+            y_training = ytrain
         
         clf.fit(ss_train,y_training)
 
@@ -204,22 +213,39 @@ def predict_SVM(path, features, name, multiclass=False):
         model= LabelPowerset(SVC(kernel='rbf', C= Best_C, gamma= Best_Gamma))
     
     for i in range(0,50):
+        
+        droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
+        droping_train=droping_train.drop_duplicates(subset=features, keep=False)
+        xtrain= droping_train[features]
+        if multiclass==True:
+            ytrain=droping_train['CRG']
+        else:
+            ytrain=droping_train[['HP', 'Diabetes', 'Otros']]
+
+        droping_test=pd.concat([x_test[i][features], y_test[i]], axis=1,sort=False)
+        droping=droping_test.drop_duplicates(subset=features, keep=False)
+        xtest= droping_test[features]
+        if multiclass==True:
+            ytest=droping_test['CRG']
+        else:
+            ytest=droping_test[['HP', 'Diabetes', 'Otros']]
+        
         ss=StandardScaler()
-        ss.fit(x_train[i][features])
-        ss_train=ss.transform(x_train[i][features])
-        ss_test=ss.transform(x_test[i][features])
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
+        ss_test=ss.transform(xtest)
 
         clf= model
         
         if multiclass==True:
-            y_training = y_train[i].values.ravel()
+            y_training = ytrain.values.ravel()
         else:
-            y_training = y_train[i]
+            y_training = ytrain
                
         clf.fit(ss_train,y_training)
 
     #Predecimos el algoritmo con el mejor K
-        y_true, y_pred = y_test[i], clf.predict(ss_test)
+        y_true, y_pred = ytest, clf.predict(ss_test)
         if multiclass==False:
             accuracy.append(accuracy_score(y_true, y_pred))
             hamming_losse.append(hamming_loss(y_true, y_pred))

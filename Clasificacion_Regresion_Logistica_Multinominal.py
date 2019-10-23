@@ -124,16 +124,22 @@ def hyper_RLM(path, features, name):
 
 
     for j in range(0, 50):
+        
+        droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
+        droping=droping.drop_duplicates(subset=features, keep=False)
+        xtrain= droping[features]
+        ytrain=droping['CRG']
+        
         print('Particion: ', j)
     #Normalizamos x_test y x_train con la misma media y variancia que x_train
         ss=StandardScaler()
-        ss.fit(x_train[j][features])
-        ss_train=ss.transform(x_train[j][features])
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
 
     #Buscamos los mejores parametros para esa división normalizada  
         clf = GridSearchCV(LogisticRegression(multi_class='multinomial', max_iter=400,n_jobs=-1), param_grid, 
                                 scoring='accuracy', cv=KFold(n_splits=5), n_jobs=-1)
-        clf.fit(ss_train,y_train[j].values.ravel())
+        clf.fit(ss_train,ytrain.values.ravel())
 
 
     #Evaluamos el algortimo teniendo en cuenta que para la función GridSearchCV test es nuestro train
@@ -178,18 +184,29 @@ def predict_RLM(path, features, name):
     f1_scores=[]
     
     for i in range(0,50):
+        
+        droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
+        droping_train=droping_train.drop_duplicates(subset=features, keep=False)
+        xtrain= droping_train[features]
+        ytrain=droping_train['CRG']
+
+        droping_test=pd.concat([x_test[i][features], y_test[i]], axis=1,sort=False)
+        droping=droping_test.drop_duplicates(subset=features, keep=False)
+        xtest= droping_test[features]
+        ytest=droping_test['CRG']
+        
         ss=StandardScaler()
-        ss.fit(x_train[i][features])
-        ss_train=ss.transform(x_train[i][features])
-        ss_test=ss.transform(x_test[i][features])
+        ss.fit(xtrain)
+        ss_train=ss.transform(xtrain)
+        ss_test=ss.transform(xtest)
 
         clf= LogisticRegression(multi_class='multinomial', 
                                 n_jobs=-1,C=C,solver=Solver)
 
-        clf.fit(ss_train,y_train[i].values.ravel())
+        clf.fit(ss_train,ytrain].values.ravel())
 
     #Predecimos el algoritmo con el mejor K
-        y_true, y_pred = y_test[i], clf.predict(ss_test)
+        y_true, y_pred = ytest, clf.predict(ss_test)
 
         cm = confusion_matrix(y_true,y_pred)
         TP = np.diag(cm)

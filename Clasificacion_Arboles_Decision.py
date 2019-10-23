@@ -88,7 +88,7 @@ def maximun (df, name):
 # In[ ]:
 
 
-def hyper_DT(path, features, name, multiclass=False, best=False):
+def hyper_DT(path, features, name, multiclass=False):
     
     x_train, x_test, y_train, y_test = opened(path=path)
     
@@ -119,19 +119,14 @@ def hyper_DT(path, features, name, multiclass=False, best=False):
 
 
     for j in range(0, 50):
-        if best==False:
-            xtrain=x_train[j][features]
-            ytrain=y_train[j]
+
+        droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
+        droping=droping.drop_duplicates(subset=features, keep=False)
+        xtrain= droping[features]
+        if multiclass==True:
+            ytrain=droping['CRG']
         else:
-            print(x_train[j][features].shape)
-            droping=pd.concat([x_train[j][features], y_train[j]], axis=1,sort=False)
-            xtrain= droping[features]
-            print(xtrain.shape)
-            if multiclass==True:
-                ytrain=droping['CRG']
-            else:
-                ytrain=droping[['HP', 'Diabetes', 'Otros']]
-        print('Particion: ', j)
+            ytrain=droping[['HP', 'Diabetes', 'Otros']]
 
     #Normalizamos x_test y x_train con la misma media y variancia que x_train
         ss=StandardScaler()
@@ -158,6 +153,7 @@ def hyper_DT(path, features, name, multiclass=False, best=False):
 
         DT_evaluate.append([best_depth[j], best_samples_split[j],
                             round(DT_acc_model[j],3), round(DT_std[j],3)])
+        print('Particion: ', j)
     
     labels_comp = ['max_depth','min_samples_split',
                    'accuracy_model', 'std']
@@ -165,12 +161,13 @@ def hyper_DT(path, features, name, multiclass=False, best=False):
     comparacion=pd.DataFrame(data=DT_evaluate, columns = labels_comp)
     
     comparacion.to_csv('results/DT/DT_hyper_{}.csv'.format(name), index=False)
+    
 
 
 # In[ ]:
 
 
-def predict_DT(path, features, name, multiclass=False, best=False):   
+def predict_DT(path, features, name, multiclass=False):   
     
     x_train, x_test, y_train, y_test = opened(path=path)
     
@@ -198,27 +195,22 @@ def predict_DT(path, features, name, multiclass=False, best=False):
     f1_scores=[]
     
     for i in range(0,50):
-        if best==False:
-            xtrain=x_train[i][features]
-            ytrain=y_train[i]
-            xtest=x_test[i][features]
-            ytest=y_test[i]
+
+        droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
+        droping_train=droping_train.drop_duplicates(subset=features, keep=False)
+        xtrain= droping_train[features]
+        if multiclass==True:
+            ytrain=droping_train['CRG']
         else:
-            print(x_train[i][features].shape)
-            droping_train=pd.concat([x_train[i][features], y_train[i]], axis=1,sort=False)
-            xtrain= droping_train[features]
-            print(xtrain.shape)
-            if multiclass==True:
-                ytrain=droping_train['CRG']
-            else:
-                ytrain=droping_train[['HP', 'Diabetes', 'Otros']]
-            
-            droping_test=pd.concat([x_test[i][features], y_test[i]], axis=1,sort=False)
-            xtest= droping_test[features]
-            if multiclass==True:
-                ytest=droping_test['CRG']
-            else:
-                ytest=droping_test[['HP', 'Diabetes', 'Otros']]
+            ytrain=droping_train[['HP', 'Diabetes', 'Otros']]
+
+        droping_test=pd.concat([x_test[i][features], y_test[i]], axis=1,sort=False)
+        droping=droping_test.drop_duplicates(subset=features, keep=False)
+        xtest= droping_test[features]
+        if multiclass==True:
+            ytest=droping_test['CRG']
+        else:
+            ytest=droping_test[['HP', 'Diabetes', 'Otros']]
                 
         ss=StandardScaler()
         ss.fit(xtrain)
@@ -636,7 +628,7 @@ for p  in path_class:
         if path.exists('results/DT/DT_hyper_{}.csv'.format(n)): 
             print('Ya existe el hyperparametro:', n)
         else:
-            hyper_DT(p, f, n, multiclass=True, best=True)
+            hyper_DT(p, f, n, multiclass=True)
             print()
             print('--------------------------------------------------------')
             print()
@@ -644,7 +636,7 @@ for p  in path_class:
         if path.exists('results/DT/DT_predict_{}.csv'.format(n)): 
             print('Ya existe los resultados:', n)
         else:
-            predict_DT(p, f, n, multiclass=True, best=True)
+            predict_DT(p, f, n, multiclass=True)
             print()
             print('--------------------------------------------------------')
             print()
@@ -682,7 +674,7 @@ for p  in path_label:
         if path.exists('results/DT/DT_hyper_{}.csv'.format(n)): 
             print('Ya existe el hyperparametro:', n)
         else:
-            hyper_DT(p, f, n, best=True)
+            hyper_DT(p, f, n)
             print()
             print('--------------------------------------------------------')
             print()
@@ -690,7 +682,7 @@ for p  in path_label:
         if path.exists('results/DT/DT_predict_{}.csv'.format(n)): 
             print('Ya existe los resultados:', n)
         else:
-            predict_DT(p, f, n, best=True)
+            predict_DT(p, f, n)
             print()
             print('--------------------------------------------------------')
             print()
