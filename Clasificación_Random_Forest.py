@@ -701,3 +701,9 @@ for p, i in zip(paths_label, k):
 
 resultados_etiqueta(names_label)
 
+
+# In[ ]:
+
+
+
+

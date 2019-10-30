@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 # numerical computation
@@ -39,7 +39,7 @@ warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
 # ## Funciones a utilizar
 
-# In[ ]:
+# In[2]:
 
 
 def opened (path=''):
@@ -58,7 +58,7 @@ def opened (path=''):
     return X_training, X_testing, y_training, y_testing
 
 
-# In[ ]:
+# In[3]:
 
 
 def frequency (valor):
@@ -73,7 +73,7 @@ def frequency (valor):
     return valor
 
 
-# In[ ]:
+# In[4]:
 
 
 def maximun (df, name):
@@ -85,7 +85,7 @@ def maximun (df, name):
 # #  Aplicación del algoritmo SVM Clasificador no lineal.
 # 
 
-# In[ ]:
+# In[5]:
 
 
 def hyper_SVM(path, features, name, multiclass=False):
@@ -178,7 +178,7 @@ def hyper_SVM(path, features, name, multiclass=False):
     
 
 
-# In[ ]:
+# In[6]:
 
 
 def predict_SVM(path, features, name, multiclass=False):
@@ -307,7 +307,7 @@ def predict_SVM(path, features, name, multiclass=False):
 
 # ## Bucles para las diferentes ejecuciones
 
-# In[ ]:
+# In[7]:
 
 
 import os.path as path
@@ -315,7 +315,7 @@ import os.path as path
 
 # ### Seleccion de caracteristicas: Frecuencia
 
-# In[ ]:
+# In[8]:
 
 
 names = ['ocurrencia_all', 'ocurrencia_ill', 'presencia_all', 'presencia_ill'] 
@@ -325,14 +325,14 @@ for n in names:
         features_freq.append(eval(file.readline()))
 
 
-# In[ ]:
+# In[9]:
 
 
 paths_CLASS = ['/class/O_WC_A_','/class/O_WC_WO_' , '/class/P_WC_A_', '/class/P_WC_WO_']
 names_CLASS_fr=['freq_all_class_O', 'freq_ill_class_O', 'freq_all_class_P', 'freq_ill_class_P']
 
 
-# In[ ]:
+# In[10]:
 
 
 for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
@@ -353,14 +353,14 @@ for p, n, f in zip(paths_CLASS, names_CLASS_fr, features_freq):
         print()
 
 
-# In[ ]:
+# In[11]:
 
 
 paths_LABEL = ['/label/O_WL_A_','/label/O_WL_WO_' , '/label/P_WL_A_', '/label/P_WL_WO_']
 names_LABEL_fr=['freq_all_label_O', 'freq_ill_label_O', 'freq_all_label_P', 'freq_ill_label_P']
 
 
-# In[ ]:
+# In[12]:
 
 
 for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
@@ -383,7 +383,7 @@ for p, n, f in zip(paths_LABEL, names_LABEL_fr, features_freq):
 
 # ### Selección de Caracteriticas: Random Forest
 
-# In[ ]:
+# In[13]:
 
 
 names=['label_o_all','label_o_ill', 'label_p_all', 'label_p_ill']
@@ -393,14 +393,14 @@ for n in names:
         features_rf_label.append(eval(file.readline()))
 
 
-# In[ ]:
+# In[14]:
 
 
 path_label= ['/label/O_WL_A_', '/label/O_WL_WO_', '/label/P_WL_A_', '/label/P_WL_WO_']
 names_label_rf=['rf_all_label_O','rf_ill_label_O', 'rf_all_label_P', 'rf_ill_label_P']
 
 
-# In[ ]:
+# In[15]:
 
 
 for p, n, f in zip(path_label, names_label_rf, features_rf_label):
@@ -421,7 +421,7 @@ for p, n, f in zip(path_label, names_label_rf, features_rf_label):
         print()
 
 
-# In[ ]:
+# In[16]:
 
 
 names=['class_o_all','class_o_ill', 'class_p_all', 'class_p_ill']
@@ -431,14 +431,14 @@ for n in names:
         features_rf_class.append(eval(file.readline()))
 
 
-# In[ ]:
+# In[17]:
 
 
 path_class= ['/class/O_WC_A_', '/class/O_WC_WO_', '/class/P_WC_A_', '/class/P_WC_WO_']
 name_class_rf=['rf_all_class_O','rf_ill_class_O', 'rf_all_class_P', 'rf_ill_class_P']
 
 
-# In[ ]:
+# In[18]:
 
 
 for p, n, f in zip(path_class, name_class_rf, features_rf_class):   
@@ -461,7 +461,7 @@ for p, n, f in zip(path_class, name_class_rf, features_rf_class):
 
 # ### Selección de caracteristicas: F Fisher
 
-# In[ ]:
+# In[19]:
 
 
 names=['label_o_all','label_o_ill', 'label_p_all', 'label_p_ill']
@@ -471,14 +471,14 @@ for n in names:
         features_fc_label.append(eval(file.readline()))
 
 
-# In[ ]:
+# In[20]:
 
 
 path_label= ['/label/O_WL_A_', '/label/O_WL_WO_', '/label/P_WL_A_', '/label/P_WL_WO_']
 names_label_fc=['fc_all_label_O','fc_ill_label_O', 'fc_all_label_P', 'fc_ill_label_P']
 
 
-# In[ ]:
+# In[21]:
 
 
 for p, n, f in zip(path_label, names_label_fc, features_fc_label):
@@ -499,7 +499,7 @@ for p, n, f in zip(path_label, names_label_fc, features_fc_label):
         print()
 
 
-# In[ ]:
+# In[22]:
 
 
 names=['class_o_all','class_o_ill', 'class_p_all', 'class_p_ill']
@@ -509,14 +509,14 @@ for n in names:
         features_fc_class.append(eval(file.readline()))
 
 
-# In[ ]:
+# In[23]:
 
 
 path_class= ['/class/O_WC_A_', '/class/O_WC_WO_', '/class/P_WC_A_', '/class/P_WC_WO_']
 name_class_fc=['fc_all_class_O','fc_ill_class_O', 'fc_all_class_P', 'fc_ill_class_P']
 
 
-# In[ ]:
+# In[24]:
 
 
 for p, n, f in zip(path_class, name_class_fc, features_fc_class): 
@@ -539,7 +539,7 @@ for p, n, f in zip(path_class, name_class_fc, features_fc_class):
 
 # ### Resultados
 
-# In[ ]:
+# In[25]:
 
 
 def resultados_etiqueta(names): 
@@ -568,19 +568,19 @@ def resultados_etiqueta(names):
         print('---------------------------------------------------------------')
 
 
-# In[ ]:
+# In[26]:
 
 
 resultados_etiqueta(names_LABEL_fr)
 
 
-# In[ ]:
+# In[27]:
 
 
 resultados_etiqueta(names_label_fc)
 
 
-# In[ ]:
+# In[28]:
 
 
 resultados_etiqueta(names_label_rf)
@@ -588,7 +588,7 @@ resultados_etiqueta(names_label_rf)
 
 # -------------------------------
 
-# In[ ]:
+# In[29]:
 
 
 def resultados_clases(names):
@@ -601,9 +601,9 @@ def resultados_clases(names):
     for i, n in zip(range(0, len(names)), names):
         print(n)
         print()
-        Best_C = (maximun(hyper_label[i], 'c'))
+        Best_C = (maximun(hyper_class[i], 'c'))
         print('C: ', Best_C)
-        Best_Gamma = (maximun(hyper_label[i], 'gamma'))
+        Best_Gamma = (maximun(hyper_class[i], 'gamma'))
         print('Gamma: ', Best_Gamma)
 
         print('Tasa de acierto:', round(np.mean(predict_class[i]['accuracy']), 3), '+/-', round(np.std(predict_class[i]['accuracy']), 3))
@@ -613,7 +613,7 @@ def resultados_clases(names):
         print('---------------------------------------------------------------')
 
 
-# In[ ]:
+# In[30]:
 
 
 resultados_clases(names_CLASS_fr)

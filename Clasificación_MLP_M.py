@@ -660,10 +660,9 @@ for n in names:
     for f in names_features:
         with open("feature_selection/best/{}_{}.txt".format(n, f), "r") as file:
             features.append(eval(file.readline()))
-    features += [['Edad', 'Sexo']]
 paths_CLASS = ['/class/P_WC_A_', '/class/P_WC_WO_']
-names_CLASS=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc', 'fc_all_class_P_E_S', 
-             'fc_ill_class_P_atc', 'fc_ill_class_P_cie', 'fc_ill_class_P_cie_atc', 'fc_ill_class_P_E_S']
+names_CLASS=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc',
+             'fc_ill_class_P_atc', 'fc_ill_class_P_cie', 'fc_ill_class_P_cie_atc']
 
 
 # In[ ]:
@@ -736,7 +735,7 @@ for p, i in zip(paths_label, k):
             if path.exists('results/MLP/MLP_hyper_{}_{}.csv'.format(m,n)): 
                 print('Ya existe el hyperparametro:', n, m)
             else:
-                hyper_MLP(p, f, n, m)
+                hyper_MLP(p, f, n, m, True)
                 print()
                 print('--------------------------------------------------------')
                 print()
@@ -744,7 +743,7 @@ for p, i in zip(paths_label, k):
         if path.exists('results/MLP/MLP_predict_{}.csv'.format(n)): 
             print('Ya existe los resultados:', n)
         else:
-            predict_MLP(p, f, n)
+            predict_MLP(p, f, n, True)
             print()
             print('--------------------------------------------------------')
             print()

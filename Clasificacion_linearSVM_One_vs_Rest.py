@@ -34,8 +34,6 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
 
-
-
 # In[ ]:
 
 

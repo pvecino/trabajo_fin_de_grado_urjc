@@ -37,8 +37,6 @@ warnings.simplefilter(action='ignore', category=DataConversionWarning)
 from IPython.display import clear_output
 
 
-get_ipython().run_line_magic('autosave', '60')
-
 
 # ## Funciones a utilizar
 

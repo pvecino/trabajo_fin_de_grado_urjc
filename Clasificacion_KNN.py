@@ -35,8 +35,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=DataConversionWarning)
 
-get_ipython().run_line_magic('autosave', '60')
-
 
 # ## Funciones a utilizar
 

@@ -35,6 +35,7 @@ warnings.simplefilter(action='ignore', category=DataConversionWarning)
 from IPython.display import clear_output
 
 
+
 # ## Funciones a utilizar
 
 # In[ ]:
@@ -620,13 +621,29 @@ names_class=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc
 # In[ ]:
 
 
+names = ['fc_class_p_all', 'fc_class_p_ill']
+names_features=['atc', 'cie', 'cie_atc']
+features = []
+for n in names:
+    for f in names_features:
+        with open("feature_selection/best/{}_{}.txt".format(n, f), "r") as file:
+            features.append(eval(file.readline()))
+
+paths_class = ['/class/P_WC_A_', '/class/P_WC_WO_']
+names_class=['fc_all_class_P_atc', 'fc_all_class_P_cie', 'fc_all_class_P_cie_atc', 
+             'fc_ill_class_P_atc', 'fc_ill_class_P_cie', 'fc_ill_class_P_cie_atc']
+
+
+# In[ ]:
+
+
 k=['all','ill']
-for p, i in zip(paths_CLASS, k):
+for p, i in zip(paths_class, k):
     if i=='all':
-        names = names_CLASS[0:4]
+        names = names_class[0:4]
         feat = features[0:4]
     else:
-        names = names_CLASS[4:8]
+        names = names_class[4:8]
         feat = features[4:8]
     for n, f in zip( names, feat):
         if path.exists('results/DT/DT_hyper_{}.csv'.format(n)): 
